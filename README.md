@@ -40,19 +40,9 @@ push / pull request ─► GitHub Actions CI ───────────�
 Workflow ada di [`.github/workflows/ci.yml`](./.github/workflows/ci.yml). Disarankan aktifkan
 **branch protection** di `main` (Settings → Branches) dengan status check CI wajib lolos sebelum merge.
 
-## Akses & proteksi
-
-Seluruh aplikasi (halaman dan Server Actions) dilindungi HTTP Basic Auth lewat [`middleware.ts`](./middleware.ts).
-Tanpa proteksi ini, siapa pun yang tahu URL bisa menambah/menghapus transaksi, karena Server Actions
-berjalan di server dengan kredensial database. Browser sendiri tidak pernah konek langsung ke Supabase.
-
-- Kredensial dari env `BASIC_AUTH_USER` dan `BASIC_AUTH_PASSWORD`; kalau belum di-set, aplikasi membalas `503` (fail closed).
-- Pengecualian: `GET /api/health` tetap publik untuk monitoring dan tidak menampilkan data.
-- Docker lokal memakai `admin` / `admin` (lihat `docker-compose.yml`).
-
 ## Environment & secrets
 
-- Secret: `DATABASE_URL`, `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD`. `DATABASE_URL` divalidasi saat start oleh [`lib/env.ts`](./lib/env.ts).
+- Satu-satunya secret: `DATABASE_URL`. Divalidasi saat start oleh [`lib/env.ts`](./lib/env.ts).
 - Nilai asli **hanya** disimpan di Vercel → Project Settings → Environment Variables (Production dan Preview dipisah).
 - CI tidak butuh secret: memakai nilai dummy karena test me-mock database dan build tidak konek ke database.
 - `.env` di-`.gitignore`, dan gitleaks di CI akan gagal kalau ada kredensial ter-commit.
