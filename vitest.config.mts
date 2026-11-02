@@ -4,7 +4,11 @@ import path from 'node:path';
 export default defineConfig({
   resolve: {
     // Samakan alias '@/...' dengan tsconfig.json
-    alias: { '@': path.resolve(__dirname, '.') },
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+      // 'server-only' sengaja melempar error di luar React Server Components; di test tidak perlu
+      'server-only': path.resolve(__dirname, 'node_modules/server-only/empty.js'),
+    },
   },
   test: {
     environment: 'node',

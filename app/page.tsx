@@ -2,6 +2,9 @@ import { getMonthlySummary, getTransactionsByMonth } from '@/app/actions/transac
 import TransactionForm from '@/app/components/TransactionForm';
 import TransactionTable from '@/app/components/TransactionTable';
 import MonthNavigator from '@/app/components/MonthNavigator';
+import SignInForm from '@/app/components/SignInForm';
+import { signOut } from '@/app/actions/auth';
+import { getCurrentUser } from '@/lib/auth';
 import { Suspense } from 'react';
 
 function formatRupiah(amount: number) {
@@ -17,6 +20,18 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ year?: string; month?: string }>;
 }) {
+  const user = await getCurrentUser();
+
+  // Perangkat ini belum masuk → tampilkan form username + PIN
+  if (!user) {
+    return (
+      <main className="container">
+        <h1 className="page-title">💰 Monthly Expense Tracker</h1>
+        <SignInForm />
+      </main>
+    );
+  }
+
   const params = await searchParams;
   const now = new Date();
   const year  = params.year  ? parseInt(params.year)  : now.getFullYear();
@@ -29,7 +44,15 @@ export default async function HomePage({
 
   return (
     <main className="container">
-      <h1 className="page-title">💰 Monthly Expense Tracker</h1>
+      <div className="page-header">
+        <h1 className="page-title">💰 Monthly Expense Tracker</h1>
+        <form action={signOut} className="user-bar">
+          <span>
+            Masuk sebagai <strong>{user.username}</strong>
+          </span>
+          <button type="submit" className="btn btn-secondary">Keluar</button>
+        </form>
+      </div>
 
       {/* Month Navigator */}
       <Suspense>
