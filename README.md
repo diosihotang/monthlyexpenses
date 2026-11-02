@@ -40,6 +40,16 @@ push / pull request ─► GitHub Actions CI ───────────�
 Workflow ada di [`.github/workflows/ci.yml`](./.github/workflows/ci.yml). Disarankan aktifkan
 **branch protection** di `main` (Settings → Branches) dengan status check CI wajib lolos sebelum merge.
 
+## Akun & data per user
+
+Tidak ada halaman daftar: masuk cukup dengan **username + PIN 4 digit**. Username yang belum ada otomatis
+dibuat. Perangkat diingat lewat cookie sesi (1 tahun); di perangkat lain cukup masuk dengan username + PIN yang sama.
+
+- Setiap transaksi punya `userId`; semua Server Action mengambil pemilik dari sesi, tidak pernah dari parameter,
+  dan edit/hapus memakai filter `userId` sehingga data user lain tidak bisa disentuh.
+- PIN disimpan sebagai hash scrypt + salt. 5 kali PIN salah mengunci username selama 15 menit.
+- Cookie hanya berisi token acak (`httpOnly`, `secure`); database menyimpan hash SHA-256-nya.
+
 ## Environment & secrets
 
 - Satu-satunya secret: `DATABASE_URL`. Divalidasi saat start oleh [`lib/env.ts`](./lib/env.ts).

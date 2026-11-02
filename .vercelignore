@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+repomix-output.xml
+node_modules
+.next
+tests
+.agents
+.claude
+.cursor
+.devin
+*.code-workspace
+tsconfig.tsbuildinfo
