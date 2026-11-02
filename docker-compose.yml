@@ -36,6 +36,9 @@ services:
       target: runner
     environment:
       DATABASE_URL: postgresql://expense:expense@db:5432/expense
+      # Kredensial login lokal (hanya untuk Docker di laptop, bukan production)
+      BASIC_AUTH_USER: admin
+      BASIC_AUTH_PASSWORD: admin
     ports:
       - '3000:3000'
     depends_on:
