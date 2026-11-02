@@ -63,7 +63,11 @@ dibuat. Perangkat diingat lewat cookie sesi (1 tahun); di perangkat lain cukup m
   `transaction.created`, `transaction.create.invalid`, `transaction.create.failed`, `health.database.down`.
   Cari di Vercel → Logs (filter berdasarkan nama event) atau `docker compose logs app`.
 - **Health check** `GET /api/health`: `200` jika app & database sehat, `503` jika database tidak bisa dihubungi.
-  Dipakai oleh Docker `HEALTHCHECK`, smoke test CI, dan bisa didaftarkan ke uptime monitor (mis. UptimeRobot).
+  Dipakai oleh Docker `HEALTHCHECK`, smoke test CI, dan workflow terjadwal di bawah.
+- **Keep-alive & uptime check** ([`.github/workflows/keepalive.yml`](./.github/workflows/keepalive.yml)):
+  memanggil `/api/health` production setiap 2 hari. Karena endpoint itu menjalankan query, project Supabase gratis
+  tidak di-pause karena idle; kalau app/database down, job gagal dan GitHub mengirim email.
+  Catatan: GitHub menonaktifkan jadwal di repo publik yang tidak ada aktivitas selama 60 hari.
 
 ### Investigasi saat aplikasi error
 
