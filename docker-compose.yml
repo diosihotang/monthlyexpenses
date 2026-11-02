@@ -1,0 +1,46 @@
+# Menjalankan aplikasi + PostgreSQL lokal tanpa Supabase/Vercel:
+#   docker compose up --build
+# lalu buka http://localhost:3000 (cek kesehatan: http://localhost:3000/api/health)
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: expense
+      POSTGRES_PASSWORD: expense
+      POSTGRES_DB: expense
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U expense -d expense']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Sekali jalan: sinkronkan schema Prisma ke database lalu selesai
+  migrate:
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: postgresql://expense:expense@db:5432/expense
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      target: runner
+    environment:
+      DATABASE_URL: postgresql://expense:expense@db:5432/expense
+    ports:
+      - '3000:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

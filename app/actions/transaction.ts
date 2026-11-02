@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { transactionSchema } from '@/lib/validations/transaction';
+import { logger } from '@/lib/logger';
 
 // CREATE
 export async function createTransaction(formData: FormData) {
@@ -16,20 +17,28 @@ export async function createTransaction(formData: FormData) {
 
   const parsed = transactionSchema.safeParse(raw);
   if (!parsed.success) {
-    return { error: parsed.error.flatten().fieldErrors };
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    logger.warn('transaction.create.invalid', { fields: Object.keys(fieldErrors) });
+    return { error: fieldErrors };
   }
 
   const { amount, category, type, description, date } = parsed.data;
 
-  await prisma.transaction.create({
-    data: {
-      amount,
-      category,
-      type: type as 'INCOME' | 'EXPENSE',
-      description,
-      date: date ? new Date(date) : undefined,
-    },
-  });
+  try {
+    const created = await prisma.transaction.create({
+      data: {
+        amount,
+        category,
+        type: type as 'INCOME' | 'EXPENSE',
+        description,
+        date: date ? new Date(date) : undefined,
+      },
+    });
+    logger.info('transaction.created', { id: created?.id, type });
+  } catch (error) {
+    logger.error('transaction.create.failed', { error });
+    throw error;
+  }
 
   revalidatePath('/');
   return { success: true };
@@ -96,21 +105,29 @@ export async function updateTransaction(id: string, formData: FormData) {
 
   const parsed = transactionSchema.safeParse(raw);
   if (!parsed.success) {
-    return { error: parsed.error.flatten().fieldErrors };
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    logger.warn('transaction.update.invalid', { id, fields: Object.keys(fieldErrors) });
+    return { error: fieldErrors };
   }
 
   const { amount, category, type, description, date } = parsed.data;
 
-  await prisma.transaction.update({
-    where: { id },
-    data: {
-      amount,
-      category,
-      type: type as 'INCOME' | 'EXPENSE',
-      description,
-      date: date ? new Date(date) : undefined,
-    },
-  });
+  try {
+    await prisma.transaction.update({
+      where: { id },
+      data: {
+        amount,
+        category,
+        type: type as 'INCOME' | 'EXPENSE',
+        description,
+        date: date ? new Date(date) : undefined,
+      },
+    });
+    logger.info('transaction.updated', { id });
+  } catch (error) {
+    logger.error('transaction.update.failed', { id, error });
+    throw error;
+  }
 
   revalidatePath('/');
   return { success: true };
@@ -118,7 +135,13 @@ export async function updateTransaction(id: string, formData: FormData) {
 
 // DELETE
 export async function deleteTransaction(id: string) {
-  await prisma.transaction.delete({ where: { id } });
+  try {
+    await prisma.transaction.delete({ where: { id } });
+    logger.info('transaction.deleted', { id });
+  } catch (error) {
+    logger.error('transaction.delete.failed', { id, error });
+    throw error;
+  }
   revalidatePath('/');
   return { success: true };
 }

@@ -1,0 +1,87 @@
+# CI: setiap push ke main dan setiap pull request harus lolos lint, type check, test, build,
+# secret scan, dan smoke test Docker sebelum di-merge. Deploy tetap ditangani Vercel (Git integration).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, type check, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Build tidak konek ke database (halaman utama dirender dinamis),
+      # tapi lib/env.ts mewajibkan variabel ini ada. Nilai asli hanya ada di Vercel, bukan di CI.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # samakan dengan versi Node lokal
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci # postinstall menjalankan `prisma generate`
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # scan seluruh riwayat commit, bukan hanya commit terakhir
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    name: Docker build & smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start app + PostgreSQL
+        run: docker compose up -d --build --wait --wait-timeout 180 app
+
+      - name: Health check
+        run: |
+          response=$(curl -sf http://localhost:3000/api/health)
+          echo "$response"
+          echo "$response" | grep -q '"database":"up"'
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

@@ -16,3 +16,6 @@ prisma/generated/
 # misc
 .DS_Store
 *.log
+
+# typescript incremental build cache
+tsconfig.tsbuildinfo
